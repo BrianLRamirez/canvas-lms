@@ -1,26 +1,51 @@
 common: &common
   adapter: postgresql
-  host: <%= ENV.fetch('CANVAS_DATABASE_HOST', 'postgres') %>
-  password: <%= ENV.fetch('POSTGRES_PASSWORD') %>
   encoding: utf8
-  username: <%= ENV.fetch('CANVAS_DATABASE_USERNAME', 'postgres') %>
   timeout: 5000
   prepared_statements: false
   use_qualified_names: true
   shard_name: public
   schema_search_path: "''"
+  # Parse DATABASE_URL if present, otherwise use Canvas env vars
+  <% if ENV['DATABASE_URL'] %>
+  <% db_url = URI.parse(ENV['DATABASE_URL']) %>
+  host: <%= db_url.host %>
+  port: <%= db_url.port %>
+  database: <%= db_url.path[1..-1] %>
+  username: <%= db_url.user %>
+  password: <%= db_url.password %>
+  <% else %>
+  host: <%= ENV.fetch('CANVAS_DATABASE_HOST', 'postgres') %>
+  password: <%= ENV.fetch('POSTGRES_PASSWORD') %>
+  username: <%= ENV.fetch('CANVAS_DATABASE_USERNAME', 'postgres') %>
+  <% end %>
 
 production:
   <<: *common
+  <% if ENV['DATABASE_URL'] %>
+  # Use DATABASE_URL database name in production
+  <% else %>
   database: <%= ENV.fetch('CANVAS_DATABASE_PRODUCTION', 'canvas_production') %>
+  <% end %>
 
 development:
   <<: *common
+  <% if ENV['DATABASE_URL'] %>
+  # Use DATABASE_URL database name in development
+  <% else %>
   database: <%= ENV.fetch('CANVAS_DATABASE_DEVELOPMENT', 'canvas_development') %>
+  <% end %>
 
 test:
   <<: *common
+  <% if ENV['DATABASE_URL'] %>
+  # For testing, create separate test databases
+  <% db_url = URI.parse(ENV['DATABASE_URL']) %>
+  database: <%= db_url.path[1..-1] %>_test
+  <% else %>
   database: <%= ENV.fetch('CANVAS_DATABASE_TEST', 'canvas_test') %>
+  <% end %>
+  # Canvas test sharding configuration
   shard1: canvas_test_shard_1
   shard2: canvas_test_shard_2
   test_shard_1: canvas_test_shard_1
