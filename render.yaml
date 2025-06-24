@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: canvas-lms-web
+    env: docker
+    dockerfilePath: ./Dockerfile.render
+    plan: starter # Use 'free' if available, 'starter' for better performance
+    region: oregon
+    branch: render-deployment
+    envVars:
+      - key: RAILS_ENV
+        value: development
+      - key: NODE_ENV
+        value: development
+      - key: CANVAS_LMS_ADMIN_EMAIL
+        value: admin@example.com
+      - key: CANVAS_LMS_ADMIN_PASSWORD
+        value: password123
+      - key: CANVAS_LMS_ACCOUNT_NAME
+        value: "Canvas Dev"
+      - key: CANVAS_LMS_STATS_COLLECTION
+        value: opt_out
+      - key: DATABASE_URL
+        fromDatabase:
+          name: canvas-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: canvas-redis
+          property: connectionString
+    buildCommand: |
+      bundle install
+      yarn install
+      bundle exec rake db:create db:initial_setup
+      bundle exec rake canvas:compile_assets
+    startCommand: bundle exec rails server -b 0.0.0.0 -p $PORT
+
+  - type: redis
+    name: canvas-redis
+    plan: starter
+    region: oregon
+
+databases:
+  - name: canvas-postgres
+    plan: starter
+    region: oregon
