@@ -3,9 +3,9 @@ services:
     name: canvas-lms-web
     runtime: docker
     dockerfilePath: ./Dockerfile.render
-    plan: starter # Use 'free' if available, 'starter' for better performance
+    plan: starter
     region: oregon
-    branch: render-deployment
+    # Remove branch specification - Render will use default branch
     envVars:
       - key: RAILS_ENV
         value: development
@@ -36,12 +36,12 @@ services:
 
   - type: redis
     name: canvas-redis
-    plan: starter
+    plan: free  # Use free plan for Redis
     region: oregon
-    ipAllowList: []  # Empty array allows all IPs
+    ipAllowList: []
 
 databases:
   - name: canvas-postgres
-    plan: starter
+    plan: free  # Use new free plan instead of legacy 'starter'
     region: oregon
-    ipAllowList: []  # Empty array allows all IPs
+    ipAllowList: []
