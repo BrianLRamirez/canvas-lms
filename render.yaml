@@ -1,7 +1,7 @@
 services:
   - type: web
     name: canvas-lms-web
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile.render
     plan: starter # Use 'free' if available, 'starter' for better performance
     region: oregon
@@ -33,14 +33,15 @@ services:
       yarn install
       bundle exec rake db:create db:initial_setup
       bundle exec rake canvas:compile_assets
-    startCommand: bundle exec rails server -b 0.0.0.0 -p $PORT
 
   - type: redis
     name: canvas-redis
     plan: starter
     region: oregon
+    ipAllowList: []  # Empty array allows all IPs
 
 databases:
   - name: canvas-postgres
     plan: starter
     region: oregon
+    ipAllowList: []  # Empty array allows all IPs
