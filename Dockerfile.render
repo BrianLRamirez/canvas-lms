@@ -1,0 +1,51 @@
+FROM instructure/ruby-passenger:2.6
+
+USER root
+
+# Install Node.js 14.x
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
+    && apt-get install -y nodejs
+
+# Install Yarn
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+    && apt-get update && apt-get install -y yarn
+
+# Install additional dependencies
+RUN apt-get update \
+    && apt-get install -y \
+        sqlite3 \
+        libsqlite3-dev \
+        postgresql-client \
+        libpq-dev \
+        libxmlsec1-dev \
+        unzip \
+        fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Canvas directory
+WORKDIR /usr/src/app
+USER docker
+
+# Copy application files
+COPY --chown=docker:docker . /usr/src/app/
+
+# Install Ruby dependencies
+RUN bundle install --path vendor/bundle --without=mysql
+
+# Install Node dependencies
+RUN yarn install --frozen-lockfile
+
+# Set up Canvas configuration files
+RUN for config in amazon_s3 database delayed_jobs domain file_store outgoing_mail security external_migration; \
+    do cp config/$config.yml.example config/$config.yml; done
+
+# Create necessary directories
+RUN mkdir -p log tmp/pids public/assets app/stylesheets/brandable_css_brands
+
+# Set permissions
+RUN chmod 755 script/canvas_init
+
+EXPOSE 3000
+
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3000"]
